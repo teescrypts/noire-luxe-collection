@@ -8,6 +8,9 @@ export const metadata: Metadata = {
     default: "Noire Luxe Collection — Premium Wigs",
   },
   description: "Luxury wigs and hair pieces, curated for the modern woman.",
+  icons: {
+    icon: "/images/noire-logo.png", // Path resolves from your /public folder
+  },
 };
 
 export default function RootLayout({
