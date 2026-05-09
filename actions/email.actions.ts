@@ -11,7 +11,6 @@ import Subscriber from "@/models/Subscriber";
 import { validateContact, validateNewsletterEmail } from "@/lib/validation";
 
 const FROM_EMAIL = "Noire Luxe Collection <orders@noireluxecollection.com>";
-// const FROM_EMAIL = "Noire Luxe Collection <onboarding@resend.dev>";
 const ADMIN_EMAIL = "Likapurnell@yahoo.com";
 
 // ── Order confirmation ────────────────────────────────────
