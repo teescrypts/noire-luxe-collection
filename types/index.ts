@@ -1,22 +1,35 @@
+import { SerializedProduct } from "./serialized";
+
+
+export type BundleType = 'single' | 'pack';
+
+export interface BundleLength {
+  length:   string;
+  quantity: number;
+}
+
 export interface Product {
-  id: string;
-  name: string;
-  slug: string;
-  price: number;
-  originalPrice?: number;
-  description: string;
+  _id:              string;
+  name:            string;
+  slug:            string;
+  price:           number;
+  originalPrice?:  number;
+  description:     string;
   longDescription: string;
-  images: string[];
-  category: string;
-  tags: string[];
-  inStock: boolean;
-  stockCount: number;
-  featured: boolean;
-  rating: number;
-  reviewCount: number;
-  hairType: string;
-  length: string;
-  color: string;
+  images:          string[];
+  category:        string;
+  tags:            string[];
+  inStock:         boolean;
+  stockCount:      number;
+  featured:        boolean;
+  rating:          number;
+  reviewCount:     number;
+  hairType:        string;
+  length:          string;
+  color:           string;
+  // Bundle specific
+  bundleType?:     BundleType;
+  bundleLengths?:  BundleLength[];
 }
 
 export interface BlogPost {
@@ -33,9 +46,11 @@ export interface BlogPost {
 }
 
 export interface CartItem {
-  product: Product;
+  product:  SerializedProduct;
   quantity: number;
+  price: number
 }
+
 
 export interface Order {
   id: string;

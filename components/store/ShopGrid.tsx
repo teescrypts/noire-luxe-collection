@@ -1,25 +1,22 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
   Box,
   Typography,
   Grid,
-  Card,
-  CardMedia,
-  CardContent,
-  CardActions,
   Button,
-  Chip,
   Rating,
   Select,
   MenuItem,
   FormControl,
-  Stack,
 } from "@mui/material";
-import { products, getProductsByCategory } from "@/data/products";
+import { SerializedProduct } from "@/types/serialized";
+import { useShop } from "@/lib/shopContext";
+import { useCart } from "@/lib/cartContext";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import PaginationControl from "@/components/ui/Pagination";
 
 const sortOptions = [
   { value: "featured", label: "Featured" },
@@ -28,65 +25,53 @@ const sortOptions = [
   { value: "rating", label: "Top Rated" },
 ];
 
-export default function ShopGrid() {
-  const [sortBy, setSortBy] = useState("featured");
-  const [activeCategory, setCategory] = useState("All");
+interface ShopGridProps {
+  initialProducts: SerializedProduct[];
+  totalItems: number;
+  totalPages: number;
+  currentPage: number;
+  itemsPerPage: number;
+}
 
-  const categories = ["All", "Bundles", "Frontal Wigs", "Closure Wigs"];
+export default function ShopGrid({
+  initialProducts,
+  totalItems,
+  totalPages,
+  currentPage,
+  itemsPerPage,
+}: ShopGridProps) {
+  const { sortBy, setSortBy, filterProducts } = useShop();
+  const { addItem } = useCart();
 
-  let filtered = getProductsByCategory(activeCategory);
+  const filtered = filterProducts(initialProducts);
 
-  if (sortBy === "price-asc")
-    filtered = [...filtered].sort((a, b) => a.price - b.price);
-  if (sortBy === "price-desc")
-    filtered = [...filtered].sort((a, b) => b.price - a.price);
-  if (sortBy === "rating")
-    filtered = [...filtered].sort((a, b) => b.rating - a.rating);
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const handlePageChange = (page: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("page", page.toString());
+    router.push(`${pathname}?${params.toString()}`);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   return (
     <Box>
+      {/* Toolbar */}
       {/* Toolbar */}
       <Box
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          flexWrap: "wrap",
-          gap: 2,
           mb: 4,
+          gap: 2,
         }}
       >
-        {/* Category tabs */}
-        <Stack sx={{ flexDirection: "row", flexWrap: "wrap", gap: 1 }}>
-          {categories.map((cat) => (
-            <Chip
-              key={cat}
-              label={cat}
-              onClick={() => setCategory(cat)}
-              sx={{
-                borderRadius: 1,
-                fontWeight: 500,
-                fontSize: "0.75rem",
-                letterSpacing: "0.05em",
-                backgroundColor:
-                  activeCategory === cat ? "primary.main" : "transparent",
-                color:
-                  activeCategory === cat
-                    ? "primary.contrastText"
-                    : "text.secondary",
-                border: "1px solid",
-                borderColor:
-                  activeCategory === cat ? "primary.main" : "divider",
-                "&:hover": {
-                  backgroundColor:
-                    activeCategory === cat
-                      ? "primary.dark"
-                      : "rgba(201,162,39,0.06)",
-                },
-              }}
-            />
-          ))}
-        </Stack>
+        <Typography variant="body2" sx={{ color: "text.secondary" }}>
+          Showing {filtered.length} product{filtered.length !== 1 ? "s" : ""}
+        </Typography>
 
         {/* Sort */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
@@ -124,8 +109,8 @@ export default function ShopGrid() {
 
       {/* Products grid */}
       <Grid container spacing={3}>
-        {filtered.map((product) => (
-          <Grid key={product.id} size={{ xs: 12, sm: 6, lg: 4 }}>
+        {filtered.map((product: SerializedProduct) => (
+          <Grid key={product._id} size={{ xs: 12, sm: 6, lg: 4 }}>
             <Box
               sx={{
                 position: "relative",
@@ -253,7 +238,10 @@ export default function ShopGrid() {
                     variant="contained"
                     disabled={!product.inStock}
                     fullWidth
-                    onClick={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      addItem(product, 1);
+                    }}
                     sx={{
                       fontSize: "0.7rem",
                       letterSpacing: "0.08em",
@@ -424,6 +412,7 @@ export default function ShopGrid() {
                       variant="contained"
                       color="primary"
                       disabled={!product.inStock}
+                      onClick={() => addItem(product, 1)}
                       sx={{
                         fontSize: "0.65rem",
                         py: 0.6,
@@ -440,6 +429,15 @@ export default function ShopGrid() {
           </Grid>
         ))}
       </Grid>
+
+      <PaginationControl
+        currentPage={currentPage}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        itemsPerPage={itemsPerPage}
+        onPageChange={handlePageChange}
+        label="products"
+      />
     </Box>
   );
 }

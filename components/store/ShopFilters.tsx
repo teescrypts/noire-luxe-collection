@@ -19,7 +19,7 @@ import {
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import CloseIcon from "@mui/icons-material/Close";
-import { categories } from "@/data/products";
+import { useShop } from "@/lib/shopContext";
 
 const lengths = ['20"', '22"', '24"', '26"'];
 const textures = ["Body Wave", "Straight"];
@@ -28,15 +28,25 @@ interface ShopFiltersProps {
   desktopOnly?: boolean;
 }
 
+const categories = ["All", "Bundles", "Frontal Wigs", "Closure Wigs"];
+
 export default function ShopFilters({
   mobileOnly,
   desktopOnly,
 }: ShopFiltersProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedLengths, setSelectedLengths] = useState<string[]>([]);
-  const [selectedTextures, setSelectedTextures] = useState<string[]>([]);
-  const [priceRange, setPriceRange] = useState<number[]>([0, 500]);
+
+  const {
+    selectedCategories,
+    selectedLengths,
+    selectedTextures,
+    priceRange,
+    setSelectedCategories,
+    setSelectedLengths,
+    setSelectedTextures,
+    setPriceRange,
+    clearAll,
+  } = useShop();
 
   const toggleItem = (
     value: string,
@@ -48,13 +58,6 @@ export default function ShopFilters({
         ? selected.filter((v) => v !== value)
         : [...selected, value],
     );
-  };
-
-  const clearAll = () => {
-    setSelectedCategories([]);
-    setSelectedLengths([]);
-    setSelectedTextures([]);
-    setPriceRange([0, 500]);
   };
 
   const activeFilterCount =
@@ -286,7 +289,9 @@ export default function ShopFilters({
               "& .MuiSlider-thumb": {
                 width: 16,
                 height: 16,
-                "&:hover": { boxShadow: "0 0 0 6px rgba(201,162,39,0.15)" },
+                "&:hover": {
+                  boxShadow: "0 0 0 6px rgba(201,162,39,0.15)",
+                },
               },
               "& .MuiSlider-track": { height: 3 },
               "& .MuiSlider-rail": { height: 3, opacity: 0.2 },

@@ -13,25 +13,28 @@ import {
 } from "@mui/material";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import CalendarTodayOutlinedIcon from "@mui/icons-material/CalendarTodayOutlined";
-import { blogPosts, blogCategories, getPostsByCategory } from "@/data/blog";
+import { SerializedBlogPost } from "@/types/serialized";
 
-export default function BlogGrid() {
+interface Props {
+  initialPosts: SerializedBlogPost[];
+  categories: string[];
+}
+
+export default function BlogGrid({ initialPosts, categories }: Props) {
   const [activeCategory, setActiveCategory] = useState("All");
-  const posts = getPostsByCategory(activeCategory);
-  const featured = blogPosts[0];
+
+  const posts =
+    activeCategory === "All"
+      ? initialPosts
+      : initialPosts.filter((p) => p.category === activeCategory);
+
+  const featured = initialPosts[0];
 
   return (
     <Box>
       {/* Category filter */}
-      <Stack
-        sx={{
-          flexDirection: "row",
-          flexWrap: "wrap",
-          gap: 1,
-          mb: 6,
-        }}
-      >
-        {blogCategories.map((cat) => (
+      <Stack sx={{ flexDirection: "row", flexWrap: "wrap", gap: 1, mb: 6 }}>
+        {categories.map((cat) => (
           <Chip
             key={cat}
             label={cat}
@@ -60,8 +63,8 @@ export default function BlogGrid() {
         ))}
       </Stack>
 
-      {/* Featured post — full width */}
-      {activeCategory === "All" && (
+      {/* Featured post */}
+      {activeCategory === "All" && featured && (
         <Card
           component={Link}
           href={`/blog/${featured.slug}`}
@@ -83,7 +86,6 @@ export default function BlogGrid() {
             },
           }}
         >
-          {/* Image */}
           <Box
             sx={{
               position: "relative",
@@ -104,7 +106,6 @@ export default function BlogGrid() {
                 transition: "transform 0.5s ease",
               }}
             />
-            {/* Featured badge */}
             <Box
               sx={{
                 position: "absolute",
@@ -125,7 +126,6 @@ export default function BlogGrid() {
             </Box>
           </Box>
 
-          {/* Content */}
           <CardContent
             sx={{
               p: { xs: 3, md: 5 },
@@ -149,7 +149,6 @@ export default function BlogGrid() {
                 mb: 3,
               }}
             />
-
             <Typography
               variant="h4"
               sx={{
@@ -163,7 +162,6 @@ export default function BlogGrid() {
             >
               {featured.title}
             </Typography>
-
             <Typography
               variant="body1"
               sx={{
@@ -177,8 +175,6 @@ export default function BlogGrid() {
             >
               {featured.excerpt}
             </Typography>
-
-            {/* Meta */}
             <Box
               sx={{
                 display: "flex",
@@ -214,14 +210,14 @@ export default function BlogGrid() {
         </Card>
       )}
 
-      {/* Rest of posts grid */}
+      {/* Posts grid */}
       <Grid container spacing={3}>
         {posts
           .filter((p) =>
-            activeCategory === "All" ? p.id !== featured.id : true,
+            activeCategory === "All" ? p._id !== featured?._id : true,
           )
           .map((post) => (
-            <Grid key={post.id} size={{ xs: 12, sm: 6, md: 4 }}>
+            <Grid key={post._id} size={{ xs: 12, sm: 6, md: 4 }}>
               <Card
                 component={Link}
                 href={`/blog/${post.slug}`}
@@ -243,7 +239,6 @@ export default function BlogGrid() {
                   },
                 }}
               >
-                {/* Image */}
                 <Box
                   sx={{
                     position: "relative",
@@ -274,7 +269,6 @@ export default function BlogGrid() {
                     flexDirection: "column",
                   }}
                 >
-                  {/* Category + read time */}
                   <Box
                     sx={{
                       display: "flex",
@@ -296,17 +290,10 @@ export default function BlogGrid() {
                       }}
                     />
                     <Box
-                      sx={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 0.5,
-                      }}
+                      sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
                     >
                       <AccessTimeIcon
-                        sx={{
-                          fontSize: "0.8rem",
-                          color: "text.secondary",
-                        }}
+                        sx={{ fontSize: "0.8rem", color: "text.secondary" }}
                       />
                       <Typography
                         variant="caption"
@@ -317,7 +304,6 @@ export default function BlogGrid() {
                     </Box>
                   </Box>
 
-                  {/* Title */}
                   <Typography
                     variant="h6"
                     sx={{
@@ -333,7 +319,6 @@ export default function BlogGrid() {
                     {post.title}
                   </Typography>
 
-                  {/* Excerpt */}
                   <Typography
                     variant="body2"
                     sx={{
@@ -349,7 +334,6 @@ export default function BlogGrid() {
                     {post.excerpt}
                   </Typography>
 
-                  {/* Date */}
                   <Box
                     sx={{
                       display: "flex",

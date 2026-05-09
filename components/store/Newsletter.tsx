@@ -11,20 +11,27 @@ import {
   Alert,
 } from "@mui/material";
 import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
+import { validateNewsletterEmail } from "@/lib/validation";
+import { sendNewsletterWelcomeEmail } from "@/actions/email.actions";
 
 export default function Newsletter() {
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = () => {
-    if (!email || !email.includes("@")) {
-      setError("Please enter a valid email address.");
+  const handleSubmit = async () => {
+    const { valid, errors } = validateNewsletterEmail(email);
+    if (!valid) {
+      setError(errors[0].message);
       return;
     }
-    // will wire to Resend API later
-    setSubmitted(true);
-    setError("");
+    try {
+      await sendNewsletterWelcomeEmail({ email });
+      setSubmitted(true);
+      setError("");
+    } catch (error: any) {
+      setError(error.message ?? "Something went wrong. Please try again.");
+    }
   };
 
   return (

@@ -21,14 +21,21 @@ import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined
 import VerifiedIcon from "@mui/icons-material/Verified";
 import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
-import { Product } from "@/types";
 import { useCart } from "@/lib/cartContext";
+import { useRouter } from "next/navigation";
 
-export default function ProductDetail({ product }: { product: Product }) {
+import { SerializedProduct } from "@/types/serialized";
+
+export default function ProductDetail({
+  product,
+}: {
+  product: SerializedProduct;
+}) {
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [addedToCart, setAddedToCart] = useState(false);
   const { addItem } = useCart();
+  const router = useRouter();
 
   const handleAddToCart = () => {
     addItem(product, quantity);
@@ -402,6 +409,10 @@ export default function ProductDetail({ product }: { product: Product }) {
                 size="large"
                 fullWidth
                 disabled={!product.inStock}
+                onClick={() => {
+                  addItem(product, quantity);
+                  router.push("/checkout");
+                }}
                 sx={{ py: 1.8 }}
               >
                 Buy Now

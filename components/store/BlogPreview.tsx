@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import Link from "next/link";
 import {
@@ -14,10 +14,15 @@ import {
 } from "@mui/material";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
-import { blogPosts } from "@/data/blog";
 
-export default function BlogPreview() {
-  const posts = blogPosts.slice(0, 3);
+import { SerializedBlogPost } from "@/types/serialized";
+
+interface Props {
+  posts: SerializedBlogPost[];
+}
+
+export default function BlogPreview({ posts }: Props) {
+  const featured = posts[0];
 
   return (
     <Box sx={{ py: { xs: 8, md: 12 }, backgroundColor: "background.default" }}>
@@ -69,7 +74,7 @@ export default function BlogPreview() {
         {/* Blog cards */}
         <Grid container spacing={3}>
           {posts.map((post, index) => (
-            <Grid key={post.id} size={{ xs: 12, md: index === 0 ? 6 : 3 }}>
+            <Grid key={post._id} size={{ xs: 12, md: index === 0 ? 6 : 3 }}>
               <Card
                 component={Link}
                 href={`/blog/${post.slug}`}

@@ -5,11 +5,52 @@ import ThemeRegistry from "@/components/ThemeRegistry";
 export const metadata: Metadata = {
   title: {
     template: "%s | Noire Luxe Collection",
-    default: "Noire Luxe Collection — Premium Wigs",
+    default: "Noire Luxe Collection — Premium Human Hair Wigs",
   },
-  description: "Luxury wigs and hair pieces, curated for the modern woman.",
+  description:
+    "Discover luxury human hair wigs, bundles, frontal wigs and closure wigs. 100% premium human hair. Ships across the US.",
+  keywords: [
+    "human hair wigs",
+    "lace front wigs",
+    "hair bundles",
+    "closure wigs",
+    "frontal wigs",
+    "luxury wigs",
+    "Noire Luxe Collection",
+  ],
+  authors: [{ name: "Noire Luxe Collection" }],
+  creator: "Noire Luxe Collection",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL!),
   icons: {
-    icon: "/images/noire-logo.png", // Path resolves from your /public folder
+    icon: [{ url: "/images/noire-logo.png", type: "image/png" }],
+    apple: [{ url: "/images/noire-logo.png", type: "image/png" }],
+    shortcut: "/images/noire-logo.png",
+  },
+  openGraph: {
+    type: "website",
+    siteName: "Noire Luxe Collection",
+    title: "Noire Luxe Collection — Premium Human Hair Wigs",
+    description:
+      "Luxury human hair wigs, bundles and frontals. 100% premium quality.",
+    locale: "en_US",
+    images: [
+      {
+        url: "/images/noire-logo.png",
+        width: 1200,
+        height: 630,
+        alt: "Noire Luxe Collection",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Noire Luxe Collection",
+    description: "Luxury human hair wigs, bundles and frontals.",
+    images: ["/images/noire-logo.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
   },
 };
 

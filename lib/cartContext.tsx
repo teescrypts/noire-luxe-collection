@@ -7,11 +7,16 @@ import {
   useEffect,
   ReactNode,
 } from "react";
-import { Product, CartItem } from "@/types";
+import { SerializedProduct } from '@/types/serialized';
+
+interface CartItem {
+  product:  SerializedProduct;
+  quantity: number;
+}
 
 interface CartContextType {
   items: CartItem[];
-  addItem: (product: Product, quantity: number) => void;
+  addItem: (product: SerializedProduct, quantity: number) => void;
   removeItem: (productId: string) => void;
   updateQty: (productId: string, quantity: number) => void;
   clearCart: () => void;
@@ -35,27 +40,37 @@ export function CartProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("noire-cart", JSON.stringify(items));
   }, [items]);
 
-  const addItem = (product: Product, quantity: number) => {
+  const addItem = (product: SerializedProduct, quantity: number) => {
     setItems((prev) => {
-      const existing = prev.find((i) => i.product.id === product.id);
+      const existing = prev.find((i) => {
+        const prevId = (i.product as SerializedProduct)._id;
+        return prevId === product._id;
+      });
       if (existing) {
-        return prev.map((i) =>
-          i.product.id === product.id
+        return prev.map((i) => {
+          const prevId = (i.product as SerializedProduct)._id;
+          return prevId === product._id
             ? { ...i, quantity: i.quantity + quantity }
-            : i,
-        );
+            : i;
+        });
       }
       return [...prev, { product, quantity }];
     });
   };
 
   const removeItem = (productId: string) =>
-    setItems((prev) => prev.filter((i) => i.product.id !== productId));
+    setItems((prev) =>
+      prev.filter((i) => (i.product as SerializedProduct)._id !== productId),
+    );
 
   const updateQty = (productId: string, quantity: number) => {
     if (quantity < 1) return;
     setItems((prev) =>
-      prev.map((i) => (i.product.id === productId ? { ...i, quantity } : i)),
+      prev.map((i) =>
+        (i.product as SerializedProduct)._id === productId
+          ? { ...i, quantity }
+          : i,
+      ),
     );
   };
 

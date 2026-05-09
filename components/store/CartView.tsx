@@ -10,18 +10,64 @@ import {
   IconButton,
   Divider,
   Stack,
+  Alert,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
-import DeleteOutlinedIcon from '@mui/icons-material/DeleteOutlined';
+import DeleteOutlinedIcon from "@mui/icons-material/DeleteOutlined";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ShoppingBagOutlinedIcon from "@mui/icons-material/ShoppingBagOutlined";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
 import { useCart } from "@/lib/cartContext";
+import { SerializedProduct } from "@/types/serialized";
+import { validateCart } from "@/actions/cart.actions";
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function CartView() {
+  const [validating, setValidating] = useState(false);
+  const [cartErrors, setCartErrors] = useState<string[]>([]);
+
+  const router = useRouter();
   const { items, removeItem, updateQty, totalItems, totalPrice } = useCart();
+
+  const handleCheckout = async () => {
+    setValidating(true);
+    setCartErrors([]);
+
+    try {
+      const { validated, errors } = await validateCart(
+        items.map((i) => ({
+          productId: (i.product as SerializedProduct)._id,
+          quantity: i.quantity,
+        })),
+      );
+
+      if (errors.length > 0) {
+        setCartErrors(errors);
+        // Update cart quantities if needed
+        validated.forEach((v) => {
+          if (
+            v.quantity !==
+            items.find(
+              (i) => (i.product as SerializedProduct)._id === v.productId,
+            )?.quantity
+          ) {
+            updateQty(v.productId, v.quantity);
+          }
+        });
+      }
+
+      if (validated.length > 0 && errors.length === 0) {
+        router.push("/checkout");
+      }
+    } catch (error) {
+      console.error("Cart validation error:", error);
+    } finally {
+      setValidating(false);
+    }
+  };
 
   if (items.length === 0) {
     return (
@@ -144,7 +190,7 @@ export default function CartView() {
             <Stack sx={{ gap: 2 }}>
               {items.map((item) => (
                 <Box
-                  key={item.product.id}
+                  key={(item.product as SerializedProduct)._id}
                   sx={{
                     display: "grid",
                     gridTemplateColumns: { xs: "100px 1fr", sm: "140px 1fr" },
@@ -237,7 +283,10 @@ export default function CartView() {
                       >
                         <IconButton
                           onClick={() =>
-                            updateQty(item.product.id, item.quantity - 1)
+                            updateQty(
+                              (item.product as SerializedProduct)._id,
+                              item.quantity - 1,
+                            )
                           }
                           size="small"
                           sx={{
@@ -272,7 +321,10 @@ export default function CartView() {
                         </Box>
                         <IconButton
                           onClick={() =>
-                            updateQty(item.product.id, item.quantity + 1)
+                            updateQty(
+                              (item.product as SerializedProduct)._id,
+                              item.quantity + 1,
+                            )
                           }
                           size="small"
                           sx={{
@@ -307,7 +359,9 @@ export default function CartView() {
                           ${item.product.price * item.quantity}
                         </Typography>
                         <IconButton
-                          onClick={() => removeItem(item.product.id)}
+                          onClick={() =>
+                            removeItem((item.product as SerializedProduct)._id)
+                          }
                           size="small"
                           sx={{
                             color: "text.secondary",
@@ -363,7 +417,7 @@ export default function CartView() {
               <Stack sx={{ gap: 2, mb: 3 }}>
                 {items.map((item) => (
                   <Box
-                    key={item.product.id}
+                    key={(item.product as SerializedProduct)._id}
                     sx={{
                       display: "flex",
                       justifyContent: "space-between",
@@ -441,16 +495,31 @@ export default function CartView() {
               </Box>
 
               {/* Checkout button */}
+              {/* Errors */}
+              {cartErrors.length > 0 && (
+                <Box sx={{ mb: 2 }}>
+                  {cartErrors.map((error, i) => (
+                    <Alert
+                      key={i}
+                      severity="warning"
+                      sx={{ mb: 1, borderRadius: 2, fontSize: "0.8rem" }}
+                    >
+                      {error}
+                    </Alert>
+                  ))}
+                </Box>
+              )}
+
               <Button
-                component={Link}
-                href="/checkout"
+                onClick={handleCheckout}
                 variant="contained"
                 color="primary"
                 fullWidth
                 size="large"
+                disabled={validating}
                 sx={{ py: 1.8, mb: 2 }}
               >
-                Proceed to Checkout
+                {validating ? "Validating..." : "Proceed to Checkout"}
               </Button>
 
               {/* Secure badge */}

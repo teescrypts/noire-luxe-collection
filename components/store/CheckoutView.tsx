@@ -12,43 +12,62 @@ import {
   Stack,
   Radio,
   RadioGroup,
-  FormControlLabel,
   FormControl,
   Stepper,
   Step,
   StepLabel,
+  CircularProgress,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import LocalShippingOutlinedIcon from "@mui/icons-material/LocalShippingOutlined";
 import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
 import { useCart } from "@/lib/cartContext";
+import { createPaymentIntent } from "@/actions/payment.actions";
+import { createOrder } from "@/actions/order.actions";
+import StripeProvider from "./StripeProvider";
+import StripePaymentForm from "./StripePaymentForm";
+import CheckCircleOutlinedIcon from "@mui/icons-material/CheckCircleOutlined";
+import { SerializedProduct } from "@/types/serialized";
+import {
+  validateCheckoutContact,
+  validateShippingAddress,
+  getFieldError,
+  ValidationError,
+} from "@/lib/validation";
 
 const steps = ["Contact", "Delivery", "Payment"];
 
-const shippingRates = [
-  {
-    id: "standard",
-    name: "Standard Shipping",
-    description: "5–7 business days",
-    price: 12,
-  },
-  {
-    id: "express",
-    name: "Express Shipping",
-    description: "2–3 business days",
-    price: 25,
-  },
-  {
-    id: "overnight",
-    name: "Overnight Shipping",
-    description: "Next business day",
-    price: 45,
-  },
-];
+interface ShippingRate {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+}
 
-export default function CheckoutView() {
-  const { items, totalPrice } = useCart();
+interface CheckoutViewProps {
+  shippingRates: ShippingRate[];
+  pickupEnabled: boolean;
+  pickupInstructions: string;
+  freeShipping: {
+    enabled: boolean;
+    threshold: number;
+  };
+}
+
+export default function CheckoutView({
+  shippingRates,
+  pickupEnabled,
+  pickupInstructions,
+  freeShipping,
+}: CheckoutViewProps) {
+  const [fieldErrors, setFieldErrors] = useState<ValidationError[]>([]);
+  const [clientSecret, setClientSecret] = useState("");
+  const [paymentIntentId, setPaymentIntentId] = useState("");
+  const [orderComplete, setOrderComplete] = useState(false);
+  const [orderNumber, setOrderNumber] = useState("");
+  const [creatingIntent, setCreatingIntent] = useState(false);
+
+  const { items, totalPrice, clearCart } = useCart();
   const [activeStep, setActiveStep] = useState(0);
   const [fulfillmentType, setFulfillmentType] = useState<"delivery" | "pickup">(
     "delivery",
@@ -70,12 +89,162 @@ export default function CheckoutView() {
   });
 
   const selectedRate = shippingRates.find((r) => r.id === selectedShipping);
-  const shippingCost =
+  const baseShipping =
     fulfillmentType === "pickup" ? 0 : (selectedRate?.price ?? 0);
+  const shippingCost =
+    freeShipping.enabled &&
+    (freeShipping.threshold === 0 || totalPrice >= freeShipping.threshold)
+      ? 0
+      : baseShipping;
   const orderTotal = totalPrice + shippingCost;
 
-  const handleNext = () => setActiveStep((s) => s + 1);
+  const handleNext = async () => {
+    setFieldErrors([]);
+
+    if (activeStep === 0) {
+      const { valid, errors } = validateCheckoutContact({
+        firstName: contact.firstName,
+        lastName: contact.lastName,
+        email: contact.email,
+        phone: contact.phone,
+      });
+      if (!valid) {
+        setFieldErrors(errors);
+        return;
+      }
+      setActiveStep((s) => s + 1);
+      return;
+    }
+
+    if (activeStep === 1) {
+      if (fulfillmentType === "delivery") {
+        const { valid, errors } = validateShippingAddress(address);
+        if (!valid) {
+          setFieldErrors(errors);
+          return;
+        }
+      }
+
+      // Create payment intent
+      setCreatingIntent(true);
+      try {
+        const result = await createPaymentIntent({
+          items: items.map((i) => ({
+            productId: (i.product as SerializedProduct)._id,
+            quantity: i.quantity,
+          })),
+          shippingCost,
+          customerEmail: contact.email,
+        });
+        setClientSecret(result.clientSecret);
+        setPaymentIntentId(result.paymentIntentId);
+        setActiveStep((s) => s + 1);
+      } catch (error: any) {
+        console.error("Payment intent error:", error);
+      } finally {
+        setCreatingIntent(false);
+      }
+    }
+  };
+
   const handleBack = () => setActiveStep((s) => s - 1);
+
+  if (orderComplete) {
+    return (
+      <Box
+        sx={{
+          minHeight: "80vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: "background.default",
+        }}
+      >
+        <Box sx={{ textAlign: "center", px: 3, maxWidth: 520 }}>
+          {/* Success icon */}
+          <Box
+            sx={{
+              width: 80,
+              height: 80,
+              borderRadius: "50%",
+              backgroundColor: "rgba(100,180,100,0.1)",
+              border: "2px solid rgba(100,180,100,0.4)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              mx: "auto",
+              mb: 3,
+            }}
+          >
+            <CheckCircleOutlinedIcon
+              sx={{ fontSize: "2.5rem", color: "rgba(100,180,100,0.9)" }}
+            />
+          </Box>
+
+          <Typography
+            sx={{
+              fontFamily: '"Cormorant Garamond", serif',
+              fontStyle: "italic",
+              fontSize: "1.2rem",
+              color: "rgba(180,80,110,0.8)",
+              display: "block",
+              mb: 1,
+            }}
+          >
+            Thank you for your order
+          </Typography>
+          <Typography
+            variant="h4"
+            sx={{
+              fontFamily: '"Cormorant Garamond", serif',
+              fontWeight: 700,
+              mb: 2,
+            }}
+          >
+            Order Confirmed!
+          </Typography>
+          <Typography
+            variant="body1"
+            sx={{
+              color: "text.secondary",
+              lineHeight: 1.9,
+              mb: 1,
+            }}
+          >
+            Your order <strong>{orderNumber}</strong> has been placed
+            successfully. A confirmation email is on its way to{" "}
+            <strong>{contact.email}</strong>.
+          </Typography>
+          <Typography variant="body2" sx={{ color: "text.secondary", mb: 4 }}>
+            You can track your order anytime using your order ID.
+          </Typography>
+
+          <Box sx={{ display: "flex", gap: 2, justifyContent: "center" }}>
+            <Button
+              component={Link}
+              href={`/orders/${orderNumber}`}
+              variant="outlined"
+              color="primary"
+              size="large"
+              sx={{ px: 4 }}
+            >
+              View Order Details
+            </Button>
+            <Button
+              component={Link}
+              href="/shop"
+              variant="contained"
+              color="primary"
+              size="large"
+              sx={{ px: 4 }}
+            >
+              Continue Shopping
+            </Button>
+          </Box>
+        </Box>
+      </Box>
+    );
+  }
 
   // Redirect if cart is empty
   if (items.length === 0) {
@@ -244,6 +413,8 @@ export default function CheckoutView() {
                         }
                         fullWidth
                         size="small"
+                        error={!!getFieldError(fieldErrors, "firstName")}
+                        helperText={getFieldError(fieldErrors, "firstName")}
                       />
                       <TextField
                         label="Last Name"
@@ -253,6 +424,8 @@ export default function CheckoutView() {
                         }
                         fullWidth
                         size="small"
+                        error={!!getFieldError(fieldErrors, "lastName")}
+                        helperText={getFieldError(fieldErrors, "lastName")}
                       />
                     </Box>
                     <TextField
@@ -264,6 +437,8 @@ export default function CheckoutView() {
                       }
                       fullWidth
                       size="small"
+                      error={!!getFieldError(fieldErrors, "email")}
+                      helperText={getFieldError(fieldErrors, "email")}
                     />
                     <TextField
                       label="Phone Number"
@@ -274,6 +449,8 @@ export default function CheckoutView() {
                       }
                       fullWidth
                       size="small"
+                      error={!!getFieldError(fieldErrors, "phone")}
+                      helperText={getFieldError(fieldErrors, "phone")}
                     />
                   </Stack>
 
@@ -284,12 +461,7 @@ export default function CheckoutView() {
                     size="large"
                     onClick={handleNext}
                     sx={{ mt: 4, py: 1.8 }}
-                    disabled={
-                      !contact.firstName ||
-                      !contact.lastName ||
-                      !contact.email ||
-                      !contact.phone
-                    }
+                    disabled={creatingIntent}
                   >
                     Continue to Delivery
                   </Button>
@@ -343,63 +515,69 @@ export default function CheckoutView() {
                         value: "delivery",
                         label: "Ship to Me",
                         icon: <LocalShippingOutlinedIcon />,
+                        show: true,
                       },
                       {
                         value: "pickup",
                         label: "Store Pickup",
                         icon: <StorefrontOutlinedIcon />,
+                        show: pickupEnabled,
                       },
-                    ].map((opt) => (
-                      <Box
-                        key={opt.value}
-                        onClick={() =>
-                          setFulfillmentType(opt.value as "delivery" | "pickup")
-                        }
-                        sx={{
-                          p: 2.5,
-                          borderRadius: 2,
-                          border: "2px solid",
-                          borderColor:
-                            fulfillmentType === opt.value
-                              ? "primary.main"
-                              : "divider",
-                          cursor: "pointer",
-                          display: "flex",
-                          flexDirection: "column",
-                          alignItems: "center",
-                          gap: 1,
-                          backgroundColor:
-                            fulfillmentType === opt.value
-                              ? "rgba(201,162,39,0.04)"
-                              : "transparent",
-                          transition: "all 0.2s ease",
-                        }}
-                      >
+                    ]
+                      .filter((opt) => opt.show)
+                      .map((opt) => (
                         <Box
+                          key={opt.value}
+                          onClick={() =>
+                            setFulfillmentType(
+                              opt.value as "delivery" | "pickup",
+                            )
+                          }
                           sx={{
-                            color:
+                            p: 2.5,
+                            borderRadius: 2,
+                            border: "2px solid",
+                            borderColor:
                               fulfillmentType === opt.value
                                 ? "primary.main"
-                                : "text.secondary",
+                                : "divider",
+                            cursor: "pointer",
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            gap: 1,
+                            backgroundColor:
+                              fulfillmentType === opt.value
+                                ? "rgba(201,162,39,0.04)"
+                                : "transparent",
+                            transition: "all 0.2s ease",
                           }}
                         >
-                          {opt.icon}
+                          <Box
+                            sx={{
+                              color:
+                                fulfillmentType === opt.value
+                                  ? "primary.main"
+                                  : "text.secondary",
+                            }}
+                          >
+                            {opt.icon}
+                          </Box>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontWeight: 600,
+                              color:
+                                fulfillmentType === opt.value
+                                  ? "primary.main"
+                                  : "text.secondary",
+                              letterSpacing: "0.05em",
+                            }}
+                          >
+                            {opt.label}
+                          </Typography>
                         </Box>
-                        <Typography
-                          variant="body2"
-                          sx={{
-                            fontWeight: 600,
-                            color:
-                              fulfillmentType === opt.value
-                                ? "primary.main"
-                                : "text.secondary",
-                            letterSpacing: "0.05em",
-                          }}
-                        >
-                          {opt.label}
-                        </Typography>
-                      </Box>
-                    ))}
+                      ))}
                   </Box>
 
                   {/* Shipping address — delivery only */}
@@ -413,6 +591,8 @@ export default function CheckoutView() {
                         }
                         fullWidth
                         size="small"
+                        error={!!getFieldError(fieldErrors, "street")}
+                        helperText={getFieldError(fieldErrors, "street")}
                       />
                       <Box
                         sx={{
@@ -432,6 +612,8 @@ export default function CheckoutView() {
                           }
                           fullWidth
                           size="small"
+                          error={!!getFieldError(fieldErrors, "city")}
+                          helperText={getFieldError(fieldErrors, "city")}
                         />
                         <TextField
                           label="State"
@@ -441,6 +623,8 @@ export default function CheckoutView() {
                           }
                           fullWidth
                           size="small"
+                          error={!!getFieldError(fieldErrors, "state")}
+                          helperText={getFieldError(fieldErrors, "state")}
                         />
                         <TextField
                           label="ZIP"
@@ -450,6 +634,8 @@ export default function CheckoutView() {
                           }
                           fullWidth
                           size="small"
+                          error={!!getFieldError(fieldErrors, "zip")}
+                          helperText={getFieldError(fieldErrors, "zip")}
                         />
                       </Box>
 
@@ -570,9 +756,7 @@ export default function CheckoutView() {
                         variant="caption"
                         sx={{ color: "text.secondary", lineHeight: 1.8 }}
                       >
-                        We will contact you at the email provided to arrange a
-                        convenient pickup time. Orders are typically ready
-                        within 1–2 business days.
+                        {pickupInstructions}
                       </Typography>
                     </Box>
                   )}
@@ -599,13 +783,7 @@ export default function CheckoutView() {
                       size="large"
                       onClick={handleNext}
                       sx={{ py: 1.8 }}
-                      disabled={
-                        fulfillmentType === "delivery" &&
-                        (!address.street ||
-                          !address.city ||
-                          !address.state ||
-                          !address.zip)
-                      }
+                      disabled={creatingIntent}
                     >
                       Continue to Payment
                     </Button>
@@ -646,35 +824,7 @@ export default function CheckoutView() {
                   </Typography>
                 </Box>
                 <Box sx={{ p: 3 }}>
-                  {/* Stripe will mount here */}
-                  <Box
-                    sx={{
-                      p: 4,
-                      borderRadius: 2,
-                      border: "2px dashed",
-                      borderColor: "divider",
-                      textAlign: "center",
-                      mb: 3,
-                    }}
-                  >
-                    <LockOutlinedIcon
-                      sx={{ color: "primary.main", fontSize: "2rem", mb: 1 }}
-                    />
-                    <Typography
-                      variant="body2"
-                      sx={{ color: "text.secondary", mb: 1 }}
-                    >
-                      Stripe payment form will be integrated here
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      sx={{ color: "text.secondary" }}
-                    >
-                      256-bit SSL encryption
-                    </Typography>
-                  </Box>
-
-                  <Box sx={{ display: "flex", gap: 2 }}>
+                  <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
                     <Button
                       variant="outlined"
                       color="primary"
@@ -683,16 +833,51 @@ export default function CheckoutView() {
                     >
                       Back
                     </Button>
-                    <Button
-                      variant="contained"
-                      color="primary"
-                      fullWidth
-                      size="large"
-                      sx={{ py: 1.8 }}
-                    >
-                      Pay ${orderTotal}
-                    </Button>
                   </Box>
+
+                  {clientSecret ? (
+                    <StripeProvider clientSecret={clientSecret}>
+                      <StripePaymentForm
+                        orderTotal={orderTotal}
+                        onSuccess={async (paymentIntentId) => {
+                          // Create order in DB
+                          try {
+                            const order = await createOrder({
+                              customer: {
+                                name: `${contact.firstName} ${contact.lastName}`,
+                                email: contact.email,
+                                phone: contact.phone,
+                              },
+                              items: items.map((i) => ({
+                                productId: (i.product as SerializedProduct)._id,
+                                quantity: i.quantity,
+                              })),
+                              type: fulfillmentType,
+                              shippingAddress:
+                                fulfillmentType === "delivery"
+                                  ? address
+                                  : undefined,
+                              shippingMethod:
+                                fulfillmentType === "delivery"
+                                  ? selectedShipping
+                                  : undefined,
+                              shippingCost,
+                              paymentRef: paymentIntentId,
+                            });
+                            clearCart();
+                            setOrderNumber(order.orderNumber);
+                            setOrderComplete(true);
+                          } catch (error) {
+                            console.error("Create order error:", error);
+                          }
+                        }}
+                      />
+                    </StripeProvider>
+                  ) : (
+                    <Box sx={{ textAlign: "center", py: 4 }}>
+                      <CircularProgress sx={{ color: "primary.main" }} />
+                    </Box>
+                  )}
                 </Box>
               </Box>
             )}
@@ -736,7 +921,7 @@ export default function CheckoutView() {
               <Stack sx={{ gap: 2, mb: 3 }}>
                 {items.map((item) => (
                   <Box
-                    key={item.product.id}
+                    key={item.product._id}
                     sx={{
                       display: "flex",
                       justifyContent: "space-between",

@@ -1,9 +1,19 @@
 import { Box, Container, Typography } from "@mui/material";
 import BlogGrid from "@/components/store/BlogGrid";
+import { getBlogPosts, getBlogCategories } from "@/actions/blog.actions";
 
-export const metadata = { title: "Blog" };
+export const metadata = {
+  title: "Blog",
+  description:
+    "Hair care tips, style guides and education from Noire Luxe Collection.",
+};
 
-export default function BlogPage() {
+export default async function BlogPage() {
+  const [posts, categories] = await Promise.all([
+    getBlogPosts(),
+    getBlogCategories(),
+  ]);
+
   return (
     <Box sx={{ backgroundColor: "background.default", minHeight: "100vh" }}>
       {/* Hero */}
@@ -21,7 +31,6 @@ export default function BlogPage() {
           `,
         }}
       >
-        {/* Background glow */}
         <Box
           sx={{
             position: "absolute",
@@ -33,7 +42,6 @@ export default function BlogPage() {
             pointerEvents: "none",
           }}
         />
-
         <Container maxWidth="xl" sx={{ position: "relative", zIndex: 1 }}>
           <Box sx={{ textAlign: "center" }}>
             <Typography
@@ -60,8 +68,6 @@ export default function BlogPage() {
             >
               The Noire Luxe Journal
             </Typography>
-
-            {/* Decorative divider */}
             <Box
               sx={{
                 display: "flex",
@@ -102,7 +108,7 @@ export default function BlogPage() {
 
       {/* Blog content */}
       <Container maxWidth="xl" sx={{ py: { xs: 6, md: 10 } }}>
-        <BlogGrid />
+        <BlogGrid initialPosts={posts} categories={categories} />
       </Container>
     </Box>
   );

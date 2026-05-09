@@ -21,17 +21,23 @@ import MenuIcon from "@mui/icons-material/Menu";
 import ShoppingBagOutlinedIcon from "@mui/icons-material/ShoppingBagOutlined";
 import CloseIcon from "@mui/icons-material/Close";
 import { useCart } from "@/lib/cartContext";
+import { useAuth } from "@/lib/authContext";
+import SearchBar from "./SearchBar";
+import SearchIcon from "@mui/icons-material/Search";
 
 const navLinks = [
   { label: "Shop", href: "/shop" },
   { label: "Blog", href: "/blog" },
-  { label: "About", href: "/#about" },
-  { label: "Contact", href: "/#contact" },
+  { label: "Track Order", href: "/orders" },
+  { label: "About", href: "/about" },
+  { label: "Contact", href: "/contact" },
 ];
 
 export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
- const { totalItems } = useCart();
+  const { totalItems } = useCart();
+  const { user, logout } = useAuth();
+  const [searchOpen, setSearchOpen] = useState(false);
 
   return (
     <>
@@ -111,6 +117,17 @@ export default function Navbar() {
 
             {/* Right side icons */}
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              {/* Search */}
+              <IconButton
+                onClick={() => setSearchOpen(true)}
+                sx={{
+                  color: "background.default",
+                  "&:hover": { color: "primary.main" },
+                }}
+              >
+                <SearchIcon />
+              </IconButton>
+
               {/* Cart */}
               <IconButton
                 component={Link}
@@ -136,20 +153,36 @@ export default function Navbar() {
               </IconButton>
 
               {/* Login — desktop only */}
-              <Button
-                component={Link}
-                href="/auth"
-                variant="outlined"
-                size="small"
-                sx={{
-                  display: { xs: "none", md: "flex" },
-                  fontSize: "0.75rem",
-                  letterSpacing: "0.1em",
-                  px: 2,
-                }}
-              >
-                Login
-              </Button>
+              {user ? (
+                <Button
+                  onClick={logout}
+                  variant="outlined"
+                  size="small"
+                  sx={{
+                    display: { xs: "none", md: "flex" },
+                    fontSize: "0.75rem",
+                    letterSpacing: "0.1em",
+                    px: 2,
+                  }}
+                >
+                  Logout
+                </Button>
+              ) : (
+                <Button
+                  component={Link}
+                  href="/auth"
+                  variant="outlined"
+                  size="small"
+                  sx={{
+                    display: { xs: "none", md: "flex" },
+                    fontSize: "0.75rem",
+                    letterSpacing: "0.1em",
+                    px: 2,
+                  }}
+                >
+                  Login
+                </Button>
+              )}
 
               {/* Mobile menu icon */}
               <IconButton
@@ -228,18 +261,55 @@ export default function Navbar() {
 
         <Divider sx={{ mx: 2, mt: 2 }} />
 
-        <Box sx={{ px: 3, pt: 3 }}>
+        <Box sx={{ px: 3, pb: 2 }}>
           <Button
-            component={Link}
-            href="/auth"
-            variant="outlined"
             fullWidth
-            onClick={() => setMobileOpen(false)}
+            startIcon={<SearchIcon />}
+            onClick={() => {
+              setMobileOpen(false);
+              setSearchOpen(true);
+            }}
+            sx={{
+              justifyContent: "flex-start",
+              color: "background.default",
+              letterSpacing: "0.1em",
+              mb: 1,
+              "&:hover": {
+                backgroundColor: "rgba(201,162,39,0.08)",
+              },
+            }}
           >
-            Login
+            Search
           </Button>
         </Box>
+
+        <Box sx={{ px: 3, pt: 3 }}>
+          {user ? (
+            <Button
+              variant="outlined"
+              fullWidth
+              onClick={() => {
+                logout();
+                setMobileOpen(false);
+              }}
+            >
+              Logout
+            </Button>
+          ) : (
+            <Button
+              component={Link}
+              href="/auth"
+              variant="outlined"
+              fullWidth
+              onClick={() => setMobileOpen(false)}
+            >
+              Login
+            </Button>
+          )}
+        </Box>
       </Drawer>
+
+      <SearchBar open={searchOpen} onClose={() => setSearchOpen(false)} />
     </>
   );
 }

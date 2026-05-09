@@ -5,17 +5,24 @@ import Testimonials from "@/components/store/Testimonials";
 import WhyChooseUs from "@/components/store/WhyChooseUs";
 import BlogPreview from "@/components/store/BlogPreview";
 import Newsletter from "@/components/store/Newsletter";
+import { getFeaturedProducts } from "@/actions/product.actions";
+import { getBlogPosts } from "@/actions/blog.actions";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const [featuredProducts, blogPosts] = await Promise.all([
+    getFeaturedProducts(),
+    getBlogPosts(),
+  ]);
+
   return (
-    <div>
+    <>
       <HeroSection />
-      <FeaturedProducts />
+      <FeaturedProducts products={featuredProducts} />
       <CategoriesSection />
       <WhyChooseUs />
       <Testimonials />
-      <BlogPreview />
+      <BlogPreview posts={blogPosts.slice(0, 3)} />
       <Newsletter />
-    </div>
+    </>
   );
 }
