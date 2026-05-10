@@ -23,28 +23,13 @@ import {
   ValidationError,
 } from "@/lib/validation";
 
-const contactDetails = [
-  {
-    icon: <EmailOutlinedIcon sx={{ fontSize: "1.4rem" }} />,
-    label: "Email Us",
-    value: "hello@noireluxe.com",
-    sub: "We reply within 24 hours",
-  },
-  {
-    icon: <PhoneOutlinedIcon sx={{ fontSize: "1.4rem" }} />,
-    label: "Call Us",
-    value: "+1 (555) 000-0000",
-    sub: "Mon–Fri, 9am–6pm EST",
-  },
-  {
-    icon: <AccessTimeOutlinedIcon sx={{ fontSize: "1.4rem" }} />,
-    label: "Business Hours",
-    value: "Mon–Fri, 9am–6pm EST",
-    sub: "Closed on weekends",
-  },
-];
+import { SerializedStoreInfo } from "@/types/serialized";
 
-export default function ContactView() {
+interface Props {
+  storeInfo: SerializedStoreInfo;
+}
+
+export default function ContactView({ storeInfo }: Props) {
   const [fieldErrors, setFieldErrors] = useState<ValidationError[]>([]);
   const [form, setForm] = useState({
     name: "",
@@ -87,6 +72,27 @@ export default function ContactView() {
       setLoading(false);
     }
   };
+
+  const contactDetails = [
+    {
+      icon: <EmailOutlinedIcon sx={{ fontSize: "1.4rem" }} />,
+      label: "Email Us",
+      value: storeInfo.email,
+      sub: "We reply within 24 hours",
+    },
+    {
+      icon: <PhoneOutlinedIcon sx={{ fontSize: "1.4rem" }} />,
+      label: "Call Us",
+      value: storeInfo.phone || "Contact us by email",
+      sub: storeInfo.supportHours,
+    },
+    {
+      icon: <AccessTimeOutlinedIcon sx={{ fontSize: "1.4rem" }} />,
+      label: "Business Hours",
+      value: storeInfo.supportHours,
+      sub: "Closed on weekends",
+    },
+  ];
 
   return (
     <Box sx={{ backgroundColor: "background.default" }}>
@@ -306,12 +312,12 @@ export default function ContactView() {
                   {
                     icon: <InstagramIcon />,
                     label: "Instagram",
-                    href: "https://instagram.com",
+                    href: storeInfo.instagram || "https://instagram.com",
                   },
                   {
                     icon: <FacebookIcon />,
                     label: "Facebook",
-                    href: "https://facebook.com",
+                    href: storeInfo.facebook || "https://facebook.com",
                   },
                 ].map((social) => (
                   <Box

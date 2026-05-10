@@ -1,8 +1,13 @@
+import { getPublicSettings } from "@/actions/settings.actions";
 import ContactView from "@/components/store/ContactView";
 
+export const metadata = {
+  title: "Contact Us",
+  description: "Get in touch with Noire Luxe Collection.",
+};
 
-export const metadata = { title: 'Contact Us' };
+export default async function ContactPage() {
+  const settings = await getPublicSettings();
 
-export default function ContactPage() {
-  return <ContactView />;
+  return <ContactView storeInfo={settings.storeInfo} />;
 }

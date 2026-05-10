@@ -94,3 +94,35 @@ export interface OrderStats {
   cancelled: number;
   revenue: number;
 }
+
+export interface SerializedStoreInfo {
+  storeName: string;
+  email: string;
+  phone: string;
+  instagram: string;
+  facebook: string;
+  supportHours: string;
+}
+
+export interface SerializedSettings {
+  storeInfo: SerializedStoreInfo;
+  shippingRates: {
+    id: string;
+    name: string;
+    description: string;
+    price: number;
+    enabled: boolean;
+  }[];
+  pickup: {
+    enabled: boolean;
+    address: string;
+    city: string;
+    state: string;
+    zip: string;
+    instructions: string;
+  };
+  freeShipping: {
+    enabled: boolean;
+    threshold: number;
+  };
+}

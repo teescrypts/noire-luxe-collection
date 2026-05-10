@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import Link from "next/link";
 import { Box, Container, Typography, Grid, Button } from "@mui/material";
@@ -42,7 +42,14 @@ const stats = [
   { value: "2+", label: "Years in Business" },
 ];
 
-export default function AboutView() {
+import { SerializedStoreInfo } from "@/types/serialized";
+
+interface Props {
+  storeInfo: SerializedStoreInfo;
+}
+
+export default function AboutView({ storeInfo }: Props) {
+  console.log(storeInfo)
   return (
     <Box sx={{ backgroundColor: "background.default" }}>
       {/* Hero */}
@@ -251,7 +258,11 @@ export default function AboutView() {
       {/* Our story */}
       <Box sx={{ py: { xs: 8, md: 12 } }}>
         <Container maxWidth="xl">
-          <Grid container spacing={{ xs: 6, md: 10 }} sx={{ alignItems: 'center' }}>
+          <Grid
+            container
+            spacing={{ xs: 6, md: 10 }}
+            sx={{ alignItems: "center" }}
+          >
             {/* Text */}
             <Grid size={{ xs: 12, md: 6 }}>
               <Typography

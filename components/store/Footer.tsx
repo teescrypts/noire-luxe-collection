@@ -15,21 +15,26 @@ import FacebookIcon from "@mui/icons-material/Facebook";
 import PinterestIcon from "@mui/icons-material/Pinterest";
 
 const shopLinks = [
-  { label: "All Wigs", href: "/shop" },
-  { label: "Lace Front", href: "/shop?category=Lace+Front" },
-  { label: "Full Lace", href: "/shop?category=Full+Lace" },
-  { label: "HD Lace", href: "/shop?category=HD+Lace" },
-  { label: "Closure Wigs", href: "/shop?category=Closure" },
+  { label: "All Products", href: "/shop" },
+  { label: "Bundles", href: "/shop?category=Bundles" },
+  { label: "Frontal Wigs", href: "/shop?category=Frontal+Wigs" },
+  { label: "Closure Wigs", href: "/shop?category=Closure+Wigs" },
 ];
 
 const helpLinks = [
   { label: "Track My Order", href: "/orders" },
-  { label: "Shipping Info", href: "/#shipping" },
-  { label: "FAQ", href: "/#faq" },
-  { label: "Contact Us", href: "/#contact" },
+  { label: "About Us", href: "/about" },
+  { label: "Contact Us", href: "/contact" },
+  { label: "Blog", href: "/blog" },
 ];
 
-export default function Footer() {
+import { SerializedStoreInfo } from "@/types/serialized";
+
+interface FooterProps {
+  storeInfo: SerializedStoreInfo;
+}
+
+export default function Footer({ storeInfo }: FooterProps) {
   return (
     <Box
       component="footer"
@@ -54,7 +59,7 @@ export default function Footer() {
                 mb: 2,
               }}
             >
-              Noire Luxe Collection
+              {storeInfo.storeName}
             </Typography>
             <Typography
               variant="body2"
@@ -74,12 +79,12 @@ export default function Footer() {
               {[
                 {
                   icon: <InstagramIcon />,
-                  href: "https://instagram.com",
+                  href: storeInfo.instagram || "https://instagram.com",
                   label: "Instagram",
                 },
                 {
                   icon: <FacebookIcon />,
-                  href: "https://facebook.com",
+                  href: storeInfo.facebook || "https://facebook.com",
                   label: "Facebook",
                 },
                 {
@@ -205,9 +210,9 @@ export default function Footer() {
             </Typography>
             <Stack spacing={1.5}>
               {[
-                { label: "Email", value: "hello@noireluxe.com" },
-                { label: "Phone", value: "+1 (555) 000-0000" },
-                { label: "Hours", value: "Mon–Fri, 9am–6pm EST" },
+                { label: "Email", value: storeInfo.email },
+                { label: "Phone", value: storeInfo.phone },
+                { label: "Hours", value: storeInfo.supportHours },
               ].map((item) => (
                 <Box key={item.label}>
                   <Typography

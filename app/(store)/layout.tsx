@@ -3,12 +3,16 @@ import Navbar from "@/components/store/Navbar";
 import Footer from "@/components/store/Footer";
 import { CartProvider } from "@/lib/cartContext";
 import { AuthProvider } from "@/lib/authContext";
+import { getPublicSettings } from "@/actions/settings.actions";
+import { SerializedSettings } from "@/types/serialized";
 
-export default function StoreLayout({
+export default async function StoreLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const settings: SerializedSettings = await getPublicSettings();
+
   return (
     <AuthProvider>
       <CartProvider>
@@ -24,7 +28,7 @@ export default function StoreLayout({
           <Box component="main" sx={{ flexGrow: 1 }}>
             {children}
           </Box>
-          <Footer />
+          <Footer storeInfo={settings.storeInfo} />
         </Box>
       </CartProvider>
     </AuthProvider>

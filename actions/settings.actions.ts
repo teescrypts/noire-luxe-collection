@@ -40,13 +40,13 @@ export async function getPublicSettings() {
   await connectDB();
 
   let settings = await Settings.findOne()
-    .select("shippingRates pickup freeShipping")
+    .select("shippingRates pickup freeShipping storeInfo")
     .lean();
 
   if (!settings) {
     await Settings.create({});
     settings = await Settings.findOne()
-      .select("shippingRates pickup freeShipping")
+      .select("shippingRates pickup freeShipping storeInfo")
       .lean();
   }
 
