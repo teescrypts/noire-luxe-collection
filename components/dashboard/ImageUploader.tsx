@@ -11,6 +11,7 @@ import {
 import CloudUploadOutlinedIcon from "@mui/icons-material/CloudUploadOutlined";
 import CloseIcon from "@mui/icons-material/Close";
 import AddPhotoAlternateOutlinedIcon from "@mui/icons-material/AddPhotoAlternateOutlined";
+import imageCompression from "browser-image-compression";
 import { uploadImage } from "@/actions/upload.actions";
 
 interface Props {
@@ -37,13 +38,33 @@ export default function ImageUploader({
   const [uploading, setUploading] = useState<UploadingFile[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const compressImage = async (file: File): Promise<File> => {
+    if (file.size < 500 * 1024) return file;
+
+    const options = {
+      maxSizeMB: 1,
+      maxWidthOrHeight: 1200,
+      useWebWorker: true,
+      preserveExifData: true,
+      fileType: "image/webp" as const,
+      initialQuality: 0.85,
+    };
+
+    try {
+      const compressed = await imageCompression(file, options);
+      return new File([compressed], file.name.replace(/\.[^.]+$/, ".webp"), {
+        type: "image/webp",
+      });
+    } catch {
+      return file;
+    }
+  };
+
   const handleFiles = async (files: File[]) => {
     const remaining = max - values.length;
     const toUpload = files.slice(0, remaining);
-
     if (toUpload.length === 0) return;
 
-    // Add uploading placeholders
     const placeholders: UploadingFile[] = toUpload.map((f) => ({
       id: `${f.name}-${Date.now()}`,
       name: f.name,
@@ -52,7 +73,6 @@ export default function ImageUploader({
 
     setUploading((prev) => [...prev, ...placeholders]);
 
-    // Upload each file
     const uploadedUrls: string[] = [];
 
     for (let i = 0; i < toUpload.length; i++) {
@@ -60,15 +80,22 @@ export default function ImageUploader({
       const placeholder = placeholders[i];
 
       try {
-        // Simulate progress while uploading
         setUploading((prev) =>
           prev.map((p) =>
-            p.id === placeholder.id ? { ...p, progress: 30 } : p,
+            p.id === placeholder.id ? { ...p, progress: 20 } : p,
+          ),
+        );
+
+        const compressed = await compressImage(file);
+
+        setUploading((prev) =>
+          prev.map((p) =>
+            p.id === placeholder.id ? { ...p, progress: 50 } : p,
           ),
         );
 
         const formData = new FormData();
-        formData.append("file", file);
+        formData.append("file", compressed);
 
         const result = await uploadImage(formData);
 
@@ -90,19 +117,13 @@ export default function ImageUploader({
       }
     }
 
-    // Add successfully uploaded URLs
     if (uploadedUrls.length > 0) {
       onChange([...values, ...uploadedUrls]);
     }
 
-    // Clear completed uploads after a short delay
     setTimeout(() => {
-      setUploading((prev) =>
-        prev.filter(
-          (p) => p.error && !uploadedUrls.some((u) => p.progress === 100),
-        ),
-      );
-    }, 1500);
+      setUploading([]);
+    }, 2000);
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -117,7 +138,6 @@ export default function ImageUploader({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []);
     handleFiles(files);
-    // Reset input so same file can be re-selected
     e.target.value = "";
   };
 
@@ -157,7 +177,7 @@ export default function ImageUploader({
         </Typography>
       </Box>
 
-      {/* Image previews grid */}
+      {/* Image previews */}
       {values.length > 0 && (
         <Box
           sx={{
@@ -183,11 +203,7 @@ export default function ImageUploader({
                 component="img"
                 src={url}
                 alt={`Product image ${i + 1}`}
-                sx={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                }}
+                sx={{ width: "100%", height: "100%", objectFit: "cover" }}
               />
 
               {/* Primary badge */}
@@ -242,7 +258,6 @@ export default function ImageUploader({
                   <CloseIcon sx={{ fontSize: "0.75rem" }} />
                 </IconButton>
 
-                {/* Move left — make primary */}
                 {i > 0 && (
                   <IconButton
                     size="small"
@@ -253,10 +268,7 @@ export default function ImageUploader({
                       height: 22,
                       backgroundColor: "rgba(0,0,0,0.6)",
                       color: "#fff",
-                      fontSize: "0.6rem",
-                      "&:hover": {
-                        backgroundColor: "rgba(201,162,39,0.9)",
-                      },
+                      "&:hover": { backgroundColor: "rgba(201,162,39,0.9)" },
                     }}
                   >
                     <Typography sx={{ fontSize: "0.6rem", lineHeight: 1 }}>
@@ -328,7 +340,7 @@ export default function ImageUploader({
         </Box>
       )}
 
-      {/* Drop zone — only show if under max */}
+      {/* Drop zone */}
       {values.length < max && (
         <Box
           onClick={() => inputRef.current?.click()}
@@ -387,14 +399,14 @@ export default function ImageUploader({
                   sx={{ color: "text.secondary", fontWeight: 500 }}
                 >
                   {values.length === 0
-                    ? "Drop images or click to browse"
+                    ? "Take a photo or upload from your gallery"
                     : `Add more images (${max - values.length} remaining)`}
                 </Typography>
                 <Typography
                   variant="caption"
                   sx={{ color: "text.secondary", opacity: 0.6 }}
                 >
-                  JPG, PNG, WebP, HEIC · Max 15MB · Auto-converted to WebP
+                  Max 15MB per image
                 </Typography>
               </Box>
             </>
@@ -402,7 +414,7 @@ export default function ImageUploader({
         </Box>
       )}
 
-      {/* Hidden file input — multiple */}
+      {/* Hidden file input */}
       <input
         ref={inputRef}
         type="file"
